@@ -7,7 +7,7 @@ const port = process.env.PORT || 3000
 require('dotenv').config()
 app.use(express.json())
 app.use(cors({
-  origin:["http://localhost:5174"],
+  origin:["http://localhost:5174","http://localhost:5173","https://joyful-chebakia-80377c.netlify.app"],
   credentials:true
 }))
 app.use(cookieParser());
@@ -48,7 +48,7 @@ app.get('/', (req, res) => {
 })
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = "mongodb+srv://Hotel-booking:5Ruv3QfCoYFflRJL@cluster0.0pthw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_Pass}@cluster0.0pthw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -76,14 +76,14 @@ async function run() {
 
       let userData=req.body
   
-      let token= jwt.sign(userData, process.env.JWT_Secret, { expiresIn: "1h" });
+      let token= jwt.sign(userData, process.env.JWT_Secret, { expiresIn: "5h" });
   
       res
       .cookie('token', token, {
         httpOnly: true, 
-        secure:false  ,    // Prevent JavaScript access to the cookie
-        // secure: process.env.NODE_ENV === "production",
-        // sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",         // Send cookie over HTTPS only
+        // secure:false  ,    // Prevent JavaScript access to the cookie
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",         // Send cookie over HTTPS only
         
     })
       .send({success:true})
@@ -94,9 +94,9 @@ async function run() {
       res
       .clearCookie('token',  {
         httpOnly: true,
-        secure:false,
-        // secure: process.env.NODE_ENV === "production",
-        // sameSite: process.env.NODE_ENV === "production" ? "none" : "strict", // Use true in production with HTTPS
+        // secure:false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict", // Use true in production with HTTPS
       })
       .send({success:true})
     })
@@ -252,7 +252,7 @@ async function run() {
     
     // // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
