@@ -1,11 +1,47 @@
 const express = require('express')
 const app = express()
 var cors = require('cors')
-
+var jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const port = process.env.PORT || 3000
 require('dotenv').config()
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  origin:["http://localhost:5174"],
+  credentials:true
+}))
+app.use(cookieParser());
+
+let varifyToken=(req,res,next)=>{
+  // console.log("middleware running")
+
+  let token =req.cookies?.token
+  // console.log(token)
+
+
+
+
+
+  if(!token){
+    return res.status(401).send({message:"unauthorized token"})
+  }
+
+
+  jwt.verify(token, process.env.JWT_Secret,(err, decoded)=>{
+
+    if(err){
+      return res.status(401).send({message:"unauthorized token"})
+    }
+
+    req.user=decoded
+    next()
+  });
+  
+
+  
+
+}
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -35,6 +71,38 @@ async function run() {
     const mybookingcollection = database.collection("mybookingcollection");
     const reviewCollection = database.collection("reviewCollection");
 
+    app.post("/jwt",async(req,res)=>{
+      
+
+      let userData=req.body
+  
+      let token= jwt.sign(userData, process.env.JWT_Secret, { expiresIn: "1h" });
+  
+      res
+      .cookie('token', token, {
+        httpOnly: true, 
+        secure:false  ,    // Prevent JavaScript access to the cookie
+        // secure: process.env.NODE_ENV === "production",
+        // sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",         // Send cookie over HTTPS only
+        
+    })
+      .send({success:true})
+      
+    });
+  
+    app.post("/logout",(req,res)=>{
+      res
+      .clearCookie('token',  {
+        httpOnly: true,
+        secure:false,
+        // secure: process.env.NODE_ENV === "production",
+        // sameSite: process.env.NODE_ENV === "production" ? "none" : "strict", // Use true in production with HTTPS
+      })
+      .send({success:true})
+    })
+  
+  
+
   
 
 
@@ -55,7 +123,7 @@ async function run() {
 
     })
     
-    app.post('/bookings', async (req, res) => {
+    app.post('/bookings',async (req, res) => {
         const data = req.body;
       
         const doc = { data };
@@ -79,7 +147,7 @@ async function run() {
       });
 
 
-      app.get("/mybookingPage/:email",async(req,res)=>{
+      app.get("/mybookingPage/:email",varifyToken,async(req,res)=>{
         let email=req.params.email
 
         let query={"data.user.email":email}
